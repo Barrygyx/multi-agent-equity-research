@@ -1,152 +1,221 @@
 # Multi-Agent Equity Research System
 
-**An LLM-assisted equity research application for Chinese A-share stocks, combining structured financial data, a LangGraph research workflow, and an interactive Streamlit dashboard.**
+**A task-oriented, LLM-assisted research platform for Chinese A-share stocks, combining financial-data tools, a LangGraph workflow, and an interactive Streamlit dashboard.**
 
-`Python` · `LangGraph` · `LangChain` · `Streamlit` · `Plotly` · `Pandas` · `LLM API`
+**Stack:** Python · LangGraph · LangChain · Streamlit · Plotly · Pandas · OpenAI-compatible LLM API
 
-> **Portfolio project:** Built to explore how task-oriented research workflows, financial-data tools, and constrained LLM synthesis can support equity research. The application interface and generated reports are in Chinese because its target market is mainland China; this documentation is in English.
+> **Portfolio project · Chinese-language application, English documentation.** The interface and generated reports use Chinese because the product is designed around mainland China's A-share market. This README explains the technical design for an international audience.
 
-## Overview
+## At a Glance
 
-Researching a listed company often requires checking separate sources for price history, technical indicators, financial statements, valuation, capital flows, sector performance, and announcements. This project brings those inputs into a single workflow and presents them in an interactive stock-research dashboard.
+**What makes this project different:** It deliberately separates **deterministic financial computation**, **task-specific orchestration**, and **constrained language-model synthesis**. It also maintains a direct, responsiveness-oriented dashboard execution path alongside the reusable LangGraph research workflow.
 
-The implementation separates **data retrieval and numerical computation** from **language-model interpretation**. Python tools supply structured observations; an LLM generates a short qualitative commentary based on a bounded payload; and a deterministic report builder composes the final research summary.
 
-**What this project is:** a financial-data integration and LLM-assisted research application. **What it is not:** a trained stock-price forecasting model, automated trading system, or a collection of autonomous LLM agents independently making investment decisions.
+- **Unified equity research:** Look up an A-share company and explore price history, technical signals, financial metrics, capital flows, industry performance, and recent announcements.
+- **Task-oriented orchestration:** A LangGraph workflow organizes specialized research functions and passes structured results through a shared state.
+- **LLM-assisted synthesis:** A report function extracts a bounded set of retrieved metrics, generates constrained commentary through an LLM when configured, and assembles a structured research report.
+- **Optimized dashboard:** A separate Streamlit path prioritizes early chart rendering, caches external data, and concurrently loads slower research sections.
 
-## Features
+## Application Walkthrough
 
-- **A-share stock lookup:** Resolve a company name or stock code into identifying information for downstream retrieval.
-- **Market overview:** Display recent price changes, historical performance, turnover, and volume statistics.
-- **Interactive technical charts:** Plot daily, weekly, or monthly candlesticks with moving averages, Bollinger Bands, volume, and KDJ indicators.
-- **Fundamentals and valuation:** Aggregate available financial metrics, business composition, and valuation data.
-- **Capital-flow and sector context:** Show available capital-flow signals and stock-versus-sector relative performance.
-- **Company announcements:** Present recent announcements with available publication dates and metadata.
-- **LLM-assisted research summary:** Generate concise observations from structured market, fundamental, sector, flow, and announcement data.
-- **Responsive loading:** Cache queries with data-dependent expiration windows, load selected data sources concurrently, and show per-section loading status.
+These are **actual screenshots of the Streamlit application**, using **Zhongtian Technology (600522)** as an example. The product interface is in Chinese because it targets the Chinese A-share market; the explanations below translate the main UI elements for an international technical audience. **Values are historical snapshots from the screenshots, not live quotes or recommendations.**
 
-## Demo
+### 1. Market overview and interactive technical chart
 
-<!-- Replace with an actual screenshot or GIF after creating assets/ -->
+[![Market dashboard for Zhongtian Technology (600522), with price summary, candlesticks, moving averages, Bollinger Bands, trading volume, and KDJ](assets/market-dashboard.png)](assets/market-dashboard.png)
 
-**Dashboard preview:** Add a screenshot at `assets/dashboard.png` and uncomment the line below.
+*Figure 1 — Market dashboard. Click the screenshot to open the full-size image.*
 
-<!-- ![A-share research dashboard (Chinese-language interface)](assets/dashboard.png) -->
+The first view is designed to give users **useful market information before the slower research requests finish**:
 
-**Suggested demo:** A 60–90-second recording showing stock lookup, price/technical charts, financial and sector tabs, and final research commentary. English captions are sufficient; the Chinese user interface can remain unchanged.
+| What appears in the screenshot | What it does |
+| --- | --- |
+| **Stock identity & quote** (中天科技 / 600522) | Resolves the company's name/code and displays the latest retrieved close, daily change, session high/low/open, turnover, and recent returns. |
+| **Candlestick chart** (K线) | Provides daily, weekly, and monthly views of historical prices so users can inspect different time horizons. |
+| **Moving averages & Bollinger Bands** (均线 / 布林轨道) | Overlays MA5/10/20/30 and upper/middle/lower Bollinger bands on the price chart. |
+| **Volume & KDJ** (成交量 / KDJ) | Adds linked trading-volume and KDJ panels to show trading activity and momentum alongside price action. |
 
-## Architecture
+**Engineering detail:** `app_fast.py` loads the price history and computes technical indicators with Python tools, prepares the selected chart frequency via `tools/chart_tools.py`, and renders a multi-panel Plotly figure. These charts are **data visualization and descriptive technical analysis**, not ML-based price forecasts.
 
-The repository contains **two related execution paths**:
+### 2. Fundamentals, data-loading progress, and AI-assisted research
 
-1. **LangGraph workflow (`graph.py`)** — a compiled `StateGraph` with task-specific nodes sharing a typed `ResearchState`.
-2. **Optimized interactive dashboard (`app_fast.py`)** — invokes data tools directly, uses Streamlit caches and a thread pool for selected independent requests, then calls the shared `report_agent` for report generation. **This dashboard does not execute the entire LangGraph graph.**
+[![Research dashboard displaying technical-indicator cards, deep-data loading status, fundamentals, sector comparisons, recent announcements, and an AI-assisted research report](assets/research-summary.png)](assets/research-summary.png)
 
-### LangGraph research workflow
+*Figure 2 — Lower part of the application. Click to read the full-size research report.*
+
+After the initial market chart appears, the application continues with **deeper company research**:
+
+| Section | What the screenshot demonstrates |
+| --- | --- |
+| **Technical summary** (技术指标摘要) | At-a-glance volume, KDJ, and Bollinger-midline metrics, complementing the interactive chart. |
+| **Deep-data status** (深度数据) | Separate progress indicators for fundamentals, sector/business data, and announcements. A slow external provider does not leave the user staring at an unexplained blank page. |
+| **Fundamentals** (基本面) | Report-period financial metrics such as operating margin, return on equity, debt-to-assets ratio, and valuation when available. A dash (`—`) indicates an unavailable field, not a measured zero. |
+| **Sector & relative performance** (板块与相对表现) | Compares the stock's returns with its industry/sector over multiple horizons and reports any retrieved sector-level fund-flow context. |
+| **Business mix & announcements** (主营构成 / 近期公告) | Summarizes available product revenue shares and margins separately from dated company announcements. |
+| **AI research summary** (AI研究摘要 / AI观察) | Presents a fixed-format research report assembled from retrieved data, followed by a short model-generated observation **when an LLM is configured**, or a deterministic fallback. |
+
+**Important distinction:** The numbers and report headings are constructed from tool results in Python. The LLM receives a selected structured JSON payload and is asked to provide **brief qualitative observations**, not to calculate missing figures, predict stock prices, or recommend trades. See [LLM-Assisted Report Generation](#llm-assisted-report-generation) for the exact approach.
+
+### User journey
+
+1. **Search** by Chinese stock name or ticker; resolve the company identifier.
+2. **Explore market data**: see the quote, interactive candlestick chart, volume, and technical indicators.
+3. **Load detailed research**: fetch fundamentals, sector/business information, and recent announcements concurrently, with per-section status feedback.
+4. **Read the report**: assemble the structured findings and optional, grounded LLM observations into a Chinese-language research summary.
+
+## Problem and Approach
+
+Company research involves collecting information from fragmented sources: market prices, financial statements, valuation metrics, fund flows, sector data, and announcements. The challenge is not only retrieval, but also organizing these heterogeneous inputs into a readable, consistent research view.
+
+This application separates three responsibilities:
+
+1. **Retrieve and compute** financial observations with Python tools.
+2. **Coordinate** dependent research tasks through explicit workflow functions and a shared state.
+3. **Synthesize** selected structured information into a report, using an LLM only for the qualitative observation section.
+
+It is **not** a price-prediction model, automated trading system, or a set of autonomous LLM agents independently deciding what trades to make.
+
+## System Architecture
+
+The repository provides **two execution paths**. Both use the same underlying research utilities, but they make different orchestration choices.
+
+### 1. LangGraph research workflow — `graph.py`
 
 ```mermaid
 flowchart TD
-    U[User stock query] --> C[Company agent / ticker resolution]
-    C --> F[Fund-flow agent]
-    F --> FIN[Financial agent]
-    F --> P[Price agent]
-    F --> N[News agent]
-    P --> S[Sector agent]
-    FIN --> R[Report agent]
-    N --> R
-    S --> R
-    R --> O[Structured report]
+    A[User stock name or code] --> B[Company agent<br/>Resolve ticker and company]
+    B --> C[Fund-flow agent]
+    C --> D[Financial agent]
+    C --> E[Price agent]
+    C --> F[News agent]
+    E --> G[Sector agent<br/>Uses price summary]
+    D --> H[Report agent]
+    F --> H
+    G --> H
+    H --> I[Final structured report]
 ```
 
-In `graph.py`, the financial, price, and news branches start after fund-flow retrieval; sector research depends on price data; and the report stage waits for the financial, news, and sector branches. Shared intermediate outputs are carried in `ResearchState` (`state.py`), with an additive reducer for error messages.
+`graph.py` compiles a `StateGraph` whose nodes exchange values through the typed `ResearchState` defined in `state.py`. Financial, price, and news tasks branch after fund-flow retrieval; sector analysis depends on price information; report synthesis joins the required branches. Errors are accumulated in a shared list through a state reducer.
 
-### Interactive dashboard path
+### 2. Streamlit dashboard — `app_fast.py`
 
 ```mermaid
 flowchart TD
-    UI[Streamlit UI / app_fast.py] --> RES[Cached stock resolution]
-    RES --> CO[Company profile]
-    CO --> FLOW[Fund flow]
-    FLOW --> PRICE[Prices + computed indicators]
-    PRICE --> VIEW[Render market overview and charts]
-    PRICE --> PAR[Concurrent retrieval]
-    PAR --> FIN[Financials + valuation]
-    PAR --> SEC[Sector + business composition]
-    PAR --> NEWS[Announcements]
-    FIN --> STATE[Assemble structured research state]
-    SEC --> STATE
-    NEWS --> STATE
-    PRICE --> STATE
-    FLOW --> STATE
-    STATE --> REP[Report agent]
-    REP --> LLM[Constrained LLM commentary / fallback]
-    LLM --> REPORT[Deterministic Markdown report]
+    A[Stock search in Streamlit] --> B[Resolve company and ticker]
+    B --> C[Load company profile]
+    C --> D[Load fund-flow data]
+    D --> E[Load price history and compute indicators]
+    E --> F[Display market overview and interactive chart]
+    E --> G[Parallel retrieval<br/>3 workers]
+    G --> H[Financials and valuation]
+    G --> I[Sector and business data]
+    G --> J[Company announcements]
+    H --> K[Assemble report input]
+    I --> K
+    J --> K
+    E --> K
+    D --> K
+    K --> L[Report agent<br/>LLM commentary or fallback]
+    L --> M[Display research summary]
 ```
 
-The dashboard prioritizes making market information visible before deeper sections are ready. A `ThreadPoolExecutor(max_workers=3)` retrieves financial, sector, and news data concurrently after the initial stock and price data have loaded. Each section displays its own completion or failure status.
+**Important implementation detail:** `app_fast.py` calls data tools directly and invokes `report_agent` after data retrieval. **It does not execute the full LangGraph graph.** The initial stock/company/fund-flow/price steps are sequential; the slower financial, sector, and news sections are then requested concurrently.
 
-## Agents and Tools
+### Why this architecture?
 
-The term **agent** in this project refers to a task-specific workflow node or research function. Most nodes call deterministic Python data tools; **the report agent is the node that invokes an LLM**. These are not seven independent autonomous reasoning agents.
+- **Separation of concerns:** Each workflow node has a defined research responsibility, making its inputs and outputs easier to inspect.
+- **Explicit dependencies:** Sector analysis needs price context; report generation needs information from several domains. LangGraph expresses these relationships in the research workflow.
+- **Deterministic calculations first:** Data retrieval and financial indicators stay in Python rather than being inferred by a language model.
+- **Different orchestration for different needs:** The graph makes dependencies explicit for a reusable research pipeline; the Streamlit path is tailored to progressive display and user-perceived responsiveness.
 
-| Workflow component | Responsibility | Main implementation |
+The word *agent* here means a **task-specific workflow function**, not necessarily an independently planning or reasoning LLM agent. In the current implementation, **`report_agent` is the LLM-using component**.
+
+## Research Components
+
+| Component | Responsibility | Key modules |
 | --- | --- | --- |
-| Company agent | Resolve a stock query and obtain company details | `agents.py`, `tools/stock_search.py`, `tools/company_tools.py` |
-| Fund-flow agent | Retrieve stock-level capital-flow information | `agents.py`, `tools/fund_flow_tools.py` |
-| Financial agent | Retrieve financial data and valuation metrics | `agents.py`, `tools/financial_tools.py`, `tools/valuation_tools.py` |
-| Price agent | Retrieve price history and market summaries | `agents.py`, `tools/price_tools.py` |
-| News agent | Retrieve recent company news/announcements | `agents.py`, `tools/news_tools.py` |
-| Sector agent | Retrieve industry context and relative performance | `agents.py`, `tools/sector_tools.py` |
-| Report agent | Build a structured LLM input, generate constrained observations, and assemble the report | `agents.py` |
+| Company agent | Resolve company names/codes and retrieve company details | `agents.py`, `tools/stock_search.py`, `tools/company_tools.py` |
+| Fund-flow agent | Retrieve capital-flow and turnover information | `agents.py`, `tools/fund_flow_tools.py` |
+| Financial agent | Retrieve financial metrics and valuation information | `agents.py`, `tools/financial_tools.py`, `tools/valuation_tools.py` |
+| Price agent | Retrieve market history and compute technical indicators | `agents.py`, `tools/price_tools.py`, `tools/technical_tools.py` |
+| News agent | Retrieve recent news and company announcements | `agents.py`, `tools/news_tools.py` |
+| Sector agent | Retrieve industry information and stock-versus-sector performance | `agents.py`, `tools/sector_tools.py` |
+| Report agent | Build a bounded model input, generate observations, and assemble a Markdown report | `agents.py` |
+| Chart utilities | Prepare chart-ready data for interactive visualization | `tools/chart_tools.py`, `app_fast.py` |
 
-Additional modules include `tools/technical_tools.py` for technical indicators and `tools/chart_tools.py` for chart-ready data.
+## LLM-Assisted Report Generation
 
-## LLM Design and Grounding
+The report pipeline in `agents.py` is intentionally **data-first**:
 
-The report agent uses `ChatOpenAI` from `langchain_openai` with configurable `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and `OPENAI_MODEL` environment variables. The default configured model identifier in `agents.py` is `zai.glm-4.7-flash`; the API endpoint is configurable rather than hard-coded to a specific provider.
+1. **Structured input:** `_build_ai_payload()` selects available market returns, technical signals, fund-flow observations, financial metrics, sector comparisons, business composition, and recent announcement metadata.
+2. **Constrained interpretation:** `report_agent()` asks for three to four short Chinese observations based **only on the supplied JSON**. The prompt prohibits invented financial facts, unsupported fundamental comparisons, price targets, trading instructions, and price predictions. It also distinguishes overall fund flow from main-force fund flow and requires dates for referenced announcements.
+3. **Deterministic document construction:** `_build_report()` generates fixed report sections for market overview, sector performance, fundamentals, business composition, announcements, and AI observations.
+4. **Graceful fallback:** If the LLM is not configured or its call fails, `_build_fallback_observation()` produces a limited observation from available structured signals.
 
-The process is intentionally split into three stages:
+**Model configuration:** The implementation uses `langchain_openai.ChatOpenAI` through configurable `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and `OPENAI_MODEL` variables. The current default model identifier in code is `zai.glm-4.7-flash`; the actual provider depends on the configured compatible endpoint. The integration uses an OpenAI-compatible API interface rather than a provider-specific SDK.
 
-1. **Extract and normalize:** `_build_ai_payload()` selects a compact set of available financial metrics, price returns, technical indicators, capital-flow observations, sector comparisons, business information, and recent announcement metadata.
-2. **Constrain commentary:** The prompt requests three or four short Chinese observations (150 Chinese characters or fewer in total) grounded only in supplied data. It explicitly prohibits invented facts, unsupported claims about company fundamentals, price targets, buy/sell instructions, and probabilistic predictions. It also distinguishes overall money flow from *main-force* flow and requires dates when discussing announcements.
-3. **Build the report:** `_build_report()` assembles deterministic sections for market overview, sector performance, fundamentals, business composition, recent announcements, and the generated observations.
+This is **prompt-level grounding**, not retrieval-augmented generation (RAG) with a vector database or a guarantee against hallucinations. LLM observations still require verification before real-world use.
 
-If the model is unconfigured or the invocation fails, the system falls back to a short observation assembled from available structured signals. **Prompt constraints reduce unsupported generation but do not guarantee factual correctness.** The system does not currently demonstrate a formal hallucination benchmark.
+## Engineering Case Study: Improving Dashboard Responsiveness
 
-## Engineering Decisions
+**Challenge.** Pulling several kinds of market and company information from external data services can create long waits before a complete research report is ready. During development, this was a practical usability bottleneck.
 
-| Challenge | Implemented approach | Trade-off |
+**Implemented changes in `app_fast.py`:**
+
+| Design choice | Actual implementation | Why it helps |
 | --- | --- | --- |
-| Multiple financial endpoints can be slow | Concurrent loading of the financial, sector, and news sections in `app_fast.py` | Overall latency still depends on upstream API responsiveness |
-| Repeated queries can trigger unnecessary retrieval | Streamlit `@st.cache_data` with different TTLs (120–1,800 seconds in the provided dashboard code) | Cached data can be temporarily stale |
-| Users otherwise wait for the entire research pipeline | Show price information and charts before deeper data, with individual status indicators | Some sections may remain unavailable while others work |
-| LLM-generated numbers may be unsupported | Calculate numbers in Python and pass selected structured values to the model | Commentary still needs human judgment |
-| External services or LLM calls may fail | Catch selected retrieval errors and provide a fallback observation when model generation fails | Coverage and completeness can vary by stock and data source |
+| Show useful content sooner | Display company information, market overview, and price chart before loading the deeper sections | Users can inspect initial results without waiting for the full report |
+| Parallelize independent work | `ThreadPoolExecutor(max_workers=3)` for financial/valuation, sector, and announcement retrieval | Independent network-bound tasks need not run one after another |
+| Cache repeated lookups | Streamlit `@st.cache_data` with source-dependent TTL values | Repeated requests can reuse recent results |
+| Communicate progress and failures | `st.status` indicators for each deep-data section and the AI report | Users can distinguish loading, success, and unavailable sections |
+| Preserve partial results | Selected data errors are caught and displayed without necessarily discarding already rendered market data | A single failed source does not always prevent useful output |
 
-No speedup factor or accuracy figure is claimed here because a reproducible benchmark was not supplied.
+Cache lifetimes in the dashboard range from **120 seconds** for price and fund-flow data to **1,800 seconds** for company and financial data. Stock resolution uses 300 seconds; news and sector queries use 600 seconds.
+
+**Trade-offs:** Caches introduce temporary staleness; an external API can still dominate total runtime; and the dashboard uses a more direct orchestration path than the LangGraph implementation. These choices improve the design for interactive use but do **not** establish a measured speedup on their own.
+
+## Evaluation and Reproducibility
+
+**Status:** The screenshots establish what the interface displayed for one example company; they are **not** a correctness, speed, or coverage benchmark. Claims about reliability or latency require separate, repeatable tests.
+
+
+The repository demonstrates a working design, but **no reproducible latency benchmark, retrieval success rate, or LLM factuality score has been established in this documentation**. Rather than inventing performance metrics, a small evaluation can be run on 5–10 A-share stocks from different industries:
+
+| Evaluation dimension | Suggested method |
+| --- | --- |
+| Time to first usable chart | Measure elapsed time from query submission until market chart data becomes available |
+| End-to-end research latency | Time each request through completion of the research report; compare cold and warm cache runs |
+| Data coverage | Record which data sections return results and which are missing for each ticker |
+| Failure handling | Simulate or observe upstream request failures and record which page sections remain usable |
+| Factual consistency | Manually cross-check every numerical claim in a sample of generated observations against the supplied structured payload |
+
+Results should be published only after repeating the measurements in a documented environment. In particular, **the project does not claim predictive accuracy, investment performance, or trading profitability**.
 
 ## Project Structure
 
 ```text
 a-share-stock-research/
-├── agents.py                 # Task-specific research functions + report synthesis
-├── graph.py                  # LangGraph StateGraph and graph entry point
-├── state.py                  # Shared typed research state
-├── app_fast.py               # Optimized Streamlit dashboard (recommended UI entry)
-├── app.py                    # Additional Streamlit application version
-├── main.py                   # Additional entry point
+├── agents.py                    # Task-specific research nodes and report generation
+├── graph.py                     # LangGraph StateGraph and run_research()
+├── state.py                     # Shared typed research state
+├── app_fast.py                  # Streamlit dashboard used for the screenshots
+├── app.py                       # Alternative app entry (not documented here)
+├── main.py                      # Additional entry point
 ├── tools/
-│   ├── __init__.py
 │   ├── stock_search.py
 │   ├── company_tools.py
 │   ├── financial_tools.py
 │   ├── price_tools.py
 │   ├── technical_tools.py
-│   ├── valuation_tools.py
 │   ├── fund_flow_tools.py
+│   ├── valuation_tools.py
 │   ├── sector_tools.py
 │   ├── news_tools.py
 │   └── chart_tools.py
+├── assets/
+│   ├── market-dashboard.png     # Market and technical analysis screenshot
+│   └── research-summary.png     # Fundamentals and AI report screenshot
+├── .env.example                 # Safe configuration template
 ├── requirements.txt
 ├── .gitignore
 └── README.md
@@ -154,13 +223,13 @@ a-share-stock-research/
 
 ## Getting Started
 
-### 1. Prerequisites
+### Prerequisites
 
-- Python and pip (use a Python version compatible with `requirements.txt`)
-- Internet access to the configured financial-data sources
-- Optional: access credentials and a compatible endpoint for LLM commentary
+- Python and `pip` (use a version compatible with the repository's `requirements.txt`)
+- An internet connection for the financial-data tools
+- **Optional:** an API key and endpoint for an OpenAI-compatible chat model
 
-### 2. Clone and install
+### Install
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/multi-agent-equity-research.git
@@ -168,70 +237,63 @@ cd multi-agent-equity-research
 python -m venv .venv
 ```
 
-**Windows PowerShell:**
+Activate the virtual environment:
+
+**Windows PowerShell**
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
-**macOS / Linux:**
+**macOS / Linux**
 
 ```bash
 source .venv/bin/activate
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
-### 3. Configure the LLM (optional)
+### Configure optional LLM access
 
-Create a local `.env` file in the project root:
+Copy `.env.example` to `.env` and replace example values with your actual credentials:
 
 ```dotenv
-OPENAI_API_KEY=your_api_key
-OPENAI_BASE_URL=https://your-compatible-endpoint/v1
+OPENAI_API_KEY=your_api_key_here
+OPENAI_BASE_URL=https://your-openai-compatible-endpoint/v1
 OPENAI_MODEL=zai.glm-4.7-flash
 ```
 
-These are the environment-variable names read by the uploaded `agents.py`. Set the endpoint and model to match your actual provider. **Never commit `.env` or real credentials.** Without an API key, the report agent uses its deterministic fallback observations.
+The endpoint and model must be supported by your chosen service. **Do not commit `.env`, credentials, tokens, or secrets.** If no key is configured, the report agent uses its limited deterministic observation fallback.
 
-### 4. Run the dashboard
+### Run the interactive dashboard
 
 ```bash
 streamlit run app_fast.py
 ```
 
-Enter a Chinese stock name or a valid A-share stock code in the sidebar and click **查询** (Search).
+Enter a Chinese company name or stock code and select **查询** (Search). The sidebar and report content are in Chinese.
 
-### 5. Run the LangGraph workflow programmatically
+### Run the LangGraph workflow from Python
 
 ```python
 from graph import run_research
 
-result = run_research("002226")
+result = run_research("600522")
 print(result.get("final_report", ""))
+print(result.get("errors", []))
 ```
 
-This calls the `StateGraph` defined in `graph.py`, **not** the optimized Streamlit execution path.
+This executes `graph.py`, **not** the optimized Streamlit dashboard.
 
-> **Reproducibility note:** The tool implementations and `requirements.txt` have not been reviewed as part of this README draft. Their external data dependencies, package versions, and any additional setup requirements should be verified before describing a clean install as tested.
+## Limitations and Next Steps
 
-## Limitations
-
-- The application is designed for **Chinese A-share equities** and uses a Chinese-language interface and reporting format.
-- External financial-data availability, rate limits, and schemas can affect completeness and runtime.
-- Caches improve responsiveness at the cost of short-lived data staleness.
-- The research report is an information-synthesis tool, not an independently verified financial analysis or investment recommendation.
-- The current repository does not establish measured prediction quality, investment returns, or a systematic evaluation of LLM factuality.
-- The supplied optimized UI uses direct tool orchestration rather than executing the full LangGraph research workflow.
-
-## Potential Improvements
-
-- Add repeatable integration tests with mocked financial-data responses.
-- Evaluate report factual consistency against source data using a small manually reviewed stock set.
-- Record per-stage execution times, cache hit rates, and data-source failure rates.
-- Add source links and observation-level provenance to the generated commentary where supported by upstream data.
-- Optionally provide English UI labels or annotated screenshots for non-Chinese-speaking reviewers.
+- **External data dependencies:** Provider availability, rate limits, stale data, and schema changes may affect retrieval or completeness.
+- **Chinese-market scope:** UI copy, financial terminology, and report output are designed for Chinese A-share research rather than an international equity universe.
+- **Model limitations:** Prompt restrictions and bounded JSON inputs reduce opportunities for invented commentary but do not guarantee factual accuracy.
+- **Orchestration trade-off:** The dashboard and LangGraph graph are separate execution paths; future work could unify shared orchestration without sacrificing early rendering.
+- **Evaluation gaps:** Add repeatable tests, stage-level latency logging, per-source coverage checks, and a small human-reviewed factual consistency set.
+- **Traceability:** Add observation-level source links and data timestamps where the underlying tools can supply them.
 
 ## Disclaimer
 
-This project is for **educational and research purposes only**. Outputs may be incomplete, delayed, or incorrect and should not be treated as financial advice. No trading recommendations or guarantees of returns are provided.
+**For educational and research use only.** The application may return incomplete, delayed, or incorrect information. It does not provide investment advice, price predictions, or guarantees of returns.
