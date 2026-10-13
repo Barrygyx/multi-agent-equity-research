@@ -213,11 +213,12 @@ All values are in seconds (**lower is better**).
 | 000725 | 147.84 | 18.24 | 147.90 | 155.65 |
 | **Mean (6 queries)** | **143.82** | **28.92** | **143.86** | **144.73** |
 
-**Observed reduction in mean time to first chart:**
+**Observed reduction in mean time to first chart: 79.9%**
 
-$$
-\frac{143.815 - 28.915}{143.815} \times 100 \approx \boxed{79.9\%}
-$$
+- Original workflow: 143.82 seconds
+- Optimized workflow: 28.92 seconds
+- Average time saved: 114.90 seconds
+- Relative improvement: **79.9% reduction (~5.0× faster)**
 
 This corresponds to **114.9 seconds less waiting on average**, or approximately **5.0× the original chart-availability speed** for these six runs. The median chart-ready time was **146.33 s** for the original version versus **18.13 s** for the optimized version.
 
